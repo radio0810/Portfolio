@@ -1,0 +1,261 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Company Countdown</title>
+  <style>
+    :root {
+      --bg: #0f172a;       /* slate-900 */
+      --panel: #111827;    /* gray-900 */
+      --text: #e5e7eb;     /* gray-200 */
+      --accent: #60a5fa;   /* blue-400 */
+      --brand: #2563eb;    /* blue-600 */
+      --muted: #9ca3af;    /* gray-400 */
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: radial-gradient(1200px 800px at 20% 20%, #0b1220, var(--bg));
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Segoe UI Emoji", "Segoe UI Symbol";
+    }
+
+    .container {
+      min-height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 800px;
+      background: rgba(17, 24, 39, 0.6);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      backdrop-filter: blur(6px);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    }
+
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2.5rem);
+      margin: 0 0 0.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    .subheader {
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .unit {
+      background: rgba(31, 41, 55, 0.6);
+      border: 1px solid rgba(96, 165, 250, 0.2);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .value {
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .label {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .footer {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .brand {
+      color: var(--brand);
+      font-weight: 600;
+    }
+
+    .done {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      color: #86efac;
+      display: none;
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container" role="main">
+    <div class="card" aria-live="polite">
+      <h1 id="headline">Countdown to Launch</h1>
+      <div class="subheader" id="subheader">Target: <span id="targetText"></span></div>
+
+      <div class="grid" aria-label="Countdown time remaining" role="group">
+        <div class="unit" aria-label="Days">
+          <div class="value" id="days">0</div>
+          <div class="label">Days</div>
+        </div>
+        <div class="unit" aria-label="Hours">
+          <div class="value" id="hours">0</div>
+          <div class="label">Hours</div>
+        </div>
+        <div class="unit" aria-label="Minutes">
+          <div class="value" id="minutes">0</div>
+          <div class="label">Minutes</div>
+        </div>
+        <div class="unit" aria-label="Seconds">
+          <div class="value" id="seconds">0</div>
+          <div class="label">Seconds</div>
+        </div>
+      </div>
+
+      <div class="done" id="doneBanner">🎉 The countdown is complete!</div>
+
+      <div class="footer">
+        <div>Powered by <span class="brand">Ace Jackson RSC</span></div>
+        <div id="tzDisplay"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * --- SET YOUR EVENT DETAILS HERE ---
+     * Use an ISO string for the target date/time.
+     * Recommended: Use a time zone explicitly to avoid confusion.
+     * Examples:
+     *   "2026-03-01T09:00:00-05:00"  // Fixed offset
+     *   "2026-03-01T14:00:00Z"       // UTC
+     *
+     * For IANA time zone handling, set TARGET_TZ and TARGET_DATE_LOCAL.
+     */
+    const TARGET_TITLE = "Countdown to Manhattan  Kickoff";
+    const TARGET_TZ = "America/New_York"; // IANA TZ (Eastern Time)
+    const TARGET_DATE_LOCAL = "2026-02-15T11:00"; // Local time in TARGET_TZ
+
+    // If you prefer a fixed timestamp, set TARGET_DATE_FIXED and leave LOCAL null
+    const TARGET_DATE_FIXED = null; // e.g., "2026-02-15T10:00Z"
+
+    // --- DO NOT EDIT BELOW UNLESS CUSTOMIZING BEHAVIOR ---
+
+    // Resolve target date to an absolute moment in time.
+    function resolveTargetDate() {
+      if (TARGET_DATE_FIXED) {
+        return new Date(TARGET_DATE_FIXED);
+      }
+      // Convert local time in a specific TZ to an absolute UTC instant.
+      // We’ll construct the UTC instant using the browser’s Intl API.
+      const local = new Date(TARGET_DATE_LOCAL);
+      // Build parts to avoid DST surprises
+      const fmt = new Intl.DateTimeFormat('en-US', {
+        timeZone: TARGET_TZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23'
+      });
+      const parts = fmt.formatToParts(local).reduce((acc, p) => (acc[p.type] = p.value, acc), {});
+      // Assemble into UTC via Date.UTC
+      const utc = Date.UTC(
+        Number(parts.year),
+        Number(parts.month) - 1,
+        Number(parts.day),
+        Number(parts.hour),
+        Number(parts.minute),
+        Number(parts.second)
+      );
+      return new Date(utc);
+    }
+
+    const targetDate = resolveTargetDate();
+
+    // Display target text and TZ
+    document.getElementById('headline').textContent = TARGET_TITLE;
+    const tzLabel = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short', timeZone: TARGET_TZ }).format(targetDate);
+    document.getElementById('targetText').textContent =
+      new Intl.DateTimeFormat(undefined, {
+        timeZone: TARGET_TZ,
+        dateStyle: 'full',
+        timeStyle: 'short'
+      }).format(targetDate) + ` (${tzLabel.split(', ').pop()})`;
+    document.getElementById('tzDisplay').textContent = `Showing time in ${TARGET_TZ}`;
+
+    const dEl = document.getElementById('days');
+    const hEl = document.getElementById('hours');
+    const mEl = document.getElementById('minutes');
+    const sEl = document.getElementById('seconds');
+    const doneBanner = document.getElementById('doneBanner');
+
+    function updateCountdown() {
+      const now = new Date();
+      const diffMs = targetDate - now;
+
+      if (diffMs <= 0) {
+        dEl.textContent = '0';
+        hEl.textContent = '0';
+        mEl.textContent = '0';
+        sEl.textContent = '0';
+        doneBanner.style.display = 'block';
+        return;
+      }
+
+      const totalSeconds = Math.floor(diffMs / 1000);
+      const days = Math.floor(totalSeconds / (3600 * 24));
+      const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      dEl.textContent = String(days);
+      hEl.textContent = String(hours).padStart(2, '0');
+      mEl.textContent = String(minutes).padStart(2, '0');
+      sEl.textContent = String(seconds).padStart(2, '0');
+    }
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 1000);
+
+    // Optional: stop interval once finished
+    const stopWhenDone = setInterval(() => {
+      const now = new Date();
+      if (targetDate - now <= 0) {
+        clearInterval(timer);
+        clearInterval(stopWhenDone);
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
