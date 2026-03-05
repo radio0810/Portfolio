@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>BSAFE Bingo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      /* ACE palette */
+      --ace-red: #ED1C24;
+      --black: #000000;
+      --white: #FFFFFF;
+      --charcoal: #4A4A4A;
+      --light-gray: #E6E7E8;
+
+      /* Layout scales (auto-updated by JS for perfect 1080p fit) */
+      --cell-size: 48px;
+      --gap: 8px;
+      --outer-pad: 10px;
+      --panel-pad: 12px;
+
+      /* Typography */
+      --text: var(--white);
+      --muted: #c8cbd0;
+      --called-bg: var(--ace-red);
+      --called-fg: var(--white);
+      --uncalled-fg: #D6D7D9;
+
+      /* Border */
+      --border: #2a2a2a;
+    }
+
+    *{box-sizing:border-box}
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      padding: var(--outer-pad);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--black);
+      overflow: hidden; /* No page scroll on Display */
+    }
+
+    .layout{
+      height: calc(100vh - var(--outer-pad)*2);
+      width: calc(100vw - var(--outer-pad)*2);
+      display: grid;
+      /* More room to the right for single prize focus */
+      grid-template-columns: .6fr 1.35fr;
+      gap: var(--gap);
+    }
+
+    .panel{
+      background: #171717;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: var(--panel-pad);
+    }
+
+    /* --- Left Board --- */
+    #boardWrap{ display:flex; height:100%; }
+    #board{
+      display:grid;
+      grid-template-columns: repeat(5, var(--cell-size));
+      grid-auto-rows: var(--cell-size);
+      gap: var(--gap);
+      margin:auto;
+    }
+
+    .col-head{
+      width: var(--cell-size);
+      height: var(--cell-size);
+      display:flex; align-items:center; justify-content:center;
+      font-weight: 900;
+      letter-spacing: .06em;
+      color: var(--white);
+      background: #222;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: clamp(14px, calc(var(--cell-size)*0.44), 26px);
+      text-transform: uppercase;
+    }
+
+    .cell{
+      width: var(--cell-size);
+      height: var(--cell-size);
+      display:flex; align-items:center; justify-content:center;
+      font-weight: 800;
+      color: var(--uncalled-fg);
+      background: #101010;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: background .15s ease, color .15s ease, transform .15s ease;
+      font-size: clamp(12px, calc(var(--cell-size)*0.40), 24px);
+      user-select: none;
+    }
+    .cell.called{
+      background: var(--called-bg);
+      color: var(--called-fg);
+      border-color: #b51419;
+      transform: scale(0.985);
+    }
+
+    /* --- Right Side (large info + single prize) --- */
+    .right-side{
+      display:grid; grid-template-rows: min-content 1fr; gap: var(--gap);
+      height: 100%;
+    }
+
+    .last-draw{
+      display:grid;
+      grid-template-columns: minmax(120px, 160px) 1fr;
+      align-items:center;
+      gap: 16px;
+      background: #1b1b1b;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .ball{
+      width: clamp(84px, calc(var(--cell-size)*1.8), 160px);
+      height: clamp(84px, calc(var(--cell-size)*1.8), 160px);
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #f7f7f7 45%, #e9e9e9 70%, #d6d6d6 85%);
+      border: 6px solid var(--ace-red);
+      box-shadow: 0 10px 24px rgba(0,0,0,.5), inset 0 4px 16px rgba(0,0,0,.2);
+      display:flex; align-items:center; justify-content:center;
+      color:#111; font-weight:900;
+      font-size: clamp(24px, calc(var(--cell-size)*0.62), 36px);
+      position:relative;
+    }
+    .ball .letter{
+      position:absolute; top:8px; left:8px;
+      background: var(--ace-red); color: var(--white);
+      font-size: clamp(12px, calc(var(--cell-size)*0.28), 16px);
+      padding: 3px 10px; border-radius: 999px; letter-spacing: .06em;
+    }
+
+    .draw-meta{
+      display:grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; align-items: center;
+    }
+    .label{color:#a8adb4; font-size:.95rem; letter-spacing:.08em; text-transform:uppercase}
+    .value{font-size: clamp(16px, 2.2vw, 24px); font-weight:900}
+
+    .history{
+      grid-column: 1 / -1;
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    }
+    .chip{
+      background:#0f0f0f; border:1px solid var(--border); color:#eaecee; border-radius:999px;
+      padding:6px 10px; font-weight:700; font-size: clamp(12px, 1.6vw, 16px);
+    }
+
+    /* Progress bar */
+    .progress-wrap{ grid-column: 1 / -1; }
+    .progress{
+      height: 14px;
+      background:#0f0f0f;
+      border:1px solid var(--border);
+      border-radius:999px;
+      overflow:hidden;
+    }
+    .progress .fill{
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, #ED1C24, #ff4d54);
+      transition: width .35s ease;
+    }
+    .progress .pct{
+      text-align:right; color:#cfd2d6; font-size:.9rem; margin-top:6px; font-weight:700;
+    }
+
+    .prize{
+      background:#1b1b1b; border:1px solid var(--border); border-radius:14px; padding:14px;
+      min-height: 0; display:grid; grid-template-rows: min-content 1fr; gap:10px; overflow:hidden;
+    }
+    .prize-head{
+      display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;
+    }
+    .prize-title{
+      font-size: clamp(18px, 2.6vw, 28px); font-weight:900; letter-spacing:.02em
+    }
+    .prize-desc{
+      color: var(--muted); font-size: clamp(13px, 1.7vw, 16px)
+    }
+    .prize-media{
+      display:grid; grid-template-columns: 1fr; min-height:0; overflow:auto;
+    }
+    .prize-media img{
+      width:100%; height: min(85vh, 650px);
+      object-fit: cover; border-radius:12px; border:1px solid var(--border); background:#0f0f0f;
+    }
+
+    /* Winner overlay */
+    .winner-overlay{
+      position:fixed; inset:0; background:rgba(0,0,0,.92);
+      display:none; align-items:center; justify-content:center; z-index:99; text-align:center; padding:24px;
+    }
+    /* Existing rule (kept) */
+    .winner-visible .winner-overlay{display:flex}
+    /* Robust rule: ensure overlay shows when BODY has the class */
+    body.winner-visible #winnerOverlay { display:flex !important; }
+
+    .winner-card{
+      max-width:1000px; width:100%; padding:28px; border-radius:18px;
+      border: 2px solid var(--ace-red); background: #111;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    }
+    .winner-name{font-size: clamp(28px, 7vw, 64px); font-weight: 900; color: var(--white); margin:.2em 0}
+    .winner-msg{font-size: clamp(16px, 2.8vw, 28px); color: #ddd}
+    .confetti{position:fixed; inset:0; pointer-events:none}
+
+    @media (max-width: 1100px){
+      .layout{grid-template-columns: 1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="layout" id="app">
+    <!-- LEFT: BOARD -->
+    <div class="panel" id="leftPanel">
+      <div id="boardWrap">
+        <div id="board">
+          <!-- Headers + Cells injected by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: LARGE LAST DRAW + SINGLE PRIZE -->
+    <div class="right-side">
+      <div class="last-draw panel" id="lastDrawPanel">
+        <div class="ball" id="ball">
+          <span class="letter" id="ballLetter">–</span>
+          <span id="ballNumber">–</span>
+        </div>
+        <div class="draw-meta">
+          <div>
+            <div class="label">Last number</div>
+            <div class="value" id="lastText">Waiting…</div>
+          </div>
+          <div>
+            <div class="label">Called</div>
+            <div class="value" id="calledCount">0 / 75</div>
+          </div>
+
+          <!-- Progress -->
+          <div class="progress-wrap">
+            <div class="label">Progress</div>
+            <div class="progress" aria-label="Progress of drawn numbers" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressBar">
+              <div class="fill" id="progressFill"></div>
+            </div>
+            <div class="progress pct" id="progressPct" style="background:none;border:none;height:auto;">0%</div>
+          </div>
+
+          <!-- Recent history -->
+          <div class="history" id="historyRow">
+            <span class="label" style="margin-right:4px">Recent:</span>
+            <!-- recent chips -->
+          </div>
+        </div>
+      </div>
+
+      <div class="prize panel" id="prizePanel">
+        <div class="prize-head">
+          <div class="prize-title" id="prizeTitle">Grand Prize</div>
+          <div class="prize-desc" id="prizeDesc">Top prize for the month-long game.</div>
+        </div>
+        <div class="prize-media">
+          <img id="prizeImage" alt="Prize">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Winner Overlay -->
+  <div class="winner-overlay" id="winnerOverlay">
+    <div class="winner-card">
+      <div class="label" style="color: var(--ace-red);">We have a winner!</div>
+      <div class="winner-name" id="winnerName">TBD</div>
+      <div class="winner-msg" id="winnerMsg">Congratulations!</div>
+    </div>
+    <canvas class="confetti" id="confetti"></canvas>
+  </div>
+
+  <script>
+    // ----- Shared state helpers -----
+    const STORAGE_KEY = 'bingoState_v1';
+
+    function defaultState() {
+      return {
+        letters: ['B','S','A','F','E'],
+        drawnNumbers: [],
+        lastNumber: null,
+        // Single prize object
+        prize: { title: 'Grand Prize', description: 'Top prize for the month-long game.', image: '' },
+        winner: { active:false, name:'', message:'' },
+        version: 0
+      };
+    }
+    function getState(){ try {return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultState()} catch {return defaultState()} }
+    function setState(updater){
+      const prev = getState();
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      next.version = (prev.version||0) + 1;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    }
+    function letterForNumber(n, letters){
+      const idx = Math.floor((n-1)/15);
+      return letters[idx] ?? '?';
+    }
+
+    // ----- Build Board -----
+    const boardEl = document.getElementById('board');
+    const leftPanel = document.getElementById('leftPanel');
+
+    function buildBoard() {
+      boardEl.innerHTML = '';
+      const s = getState();
+      const letters = s.letters || ['B','S','A','F','E'];
+      // Column headers
+      letters.forEach(l=>{
+        const h = document.createElement('div');
+        h.className='col-head';
+        h.textContent = l;
+        boardEl.appendChild(h);
+      });
+      // 75 cells
+      for(let r=0; r<15; r++){
+        for(let c=0; c<5; c++){
+          const n = c*15 + (r+1); // 1..75 by column
+          const cell = document.createElement('div');
+          cell.className='cell';
+          cell.dataset.number = String(n);
+          cell.textContent = n;
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function updateBoard() {
+      const s = getState();
+      const called = new Set(s.drawnNumbers);
+      document.querySelectorAll('.cell').forEach(cell=>{
+        const n = Number(cell.dataset.number);
+        cell.classList.toggle('called', called.has(n));
+      });
+      // last draw panel
+      const last = s.lastNumber;
+      const ballL = document.getElementById('ballLetter');
+      const ballN = document.getElementById('ballNumber');
+      const lastText = document.getElementById('lastText');
+      const calledCount = document.getElementById('calledCount');
+      if(last){
+        const L = letterForNumber(last, s.letters);
+        ballL.textContent = L;
+        ballN.textContent = last;
+        lastText.textContent = `${L} ${last}`;
+      } else {
+        ballL.textContent = '–';
+        ballN.textContent = '–';
+        lastText.textContent = 'Waiting…';
+      }
+      const totalCalled = s.drawnNumbers.length;
+      calledCount.textContent = `${totalCalled} / 75`;
+
+      // progress calc
+      const pct = Math.round((totalCalled / 75) * 100);
+      const fill = document.getElementById('progressFill');
+      const pctText = document.getElementById('progressPct');
+      const bar = document.getElementById('progressBar');
+      fill.style.width = pct + '%';
+      pctText.textContent = pct + '%';
+      bar.setAttribute('aria-valuenow', String(pct));
+
+      // recent history chips (last 10, newest first)
+      const hist = document.getElementById('historyRow');
+      hist.querySelectorAll('.chip').forEach(ch => ch.remove());
+      const recent = s.drawnNumbers.slice(-10).reverse();
+      recent.forEach(n=>{
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.textContent = `${letterForNumber(n, s.letters)} ${n}`;
+        hist.appendChild(chip);
+      });
+
+      // prize
+      const prize = s.prize || {};
+      document.getElementById('prizeTitle').textContent = prize.title || 'Grand Prize';
+      document.getElementById('prizeDesc').textContent  = prize.description || 'Top prize for the month-long game.';
+      const img = document.getElementById('prizeImage');
+      if(prize.image){
+        img.src = prize.image;
+        img.style.display = 'block';
+      } else {
+        img.src = '';
+        img.style.display = 'none';
+      }
+
+// winner overlay (robust + tolerant)
+const overlay = document.getElementById('winnerOverlay');
+const bodyEl  = document.body;
+
+// Coerce truthy 'active' variants: true, 'true', 1, '1'
+const isActive =
+  s.winner &&
+  (s.winner.active === true ||
+   s.winner.active === 'true' ||
+   s.winner.active === 1 ||
+   s.winner.active === '1');
+
+if (isActive) {
+  bodyEl.classList.add('winner-visible');      // class on BODY (strongest)
+  if (overlay) overlay.style.display = 'flex'; // explicit fallback
+  const nameEl = document.getElementById('winnerName');
+  const msgEl  = document.getElementById('winnerMsg');
+  if (nameEl) nameEl.textContent = (s.winner.name || 'Winner');
+  if (msgEl)  msgEl.textContent  = (s.winner.message || 'Congratulations!');
+  startConfetti();
+} else {
+  bodyEl.classList.remove('winner-visible');
+  if (overlay) overlay.style.display = 'none';
+  stopConfetti();
+}
+
+// --- DEBUG (temporary) ---
+let dbg = document.getElementById('debugWinner');
+if (!dbg) {
+  dbg = document.createElement('div');
+  dbg.id = 'debugWinner';
+  dbg.style.cssText = 'position:fixed;bottom:8px;left:8px;background:#111;border:1px solid #333;color:#9aa0a6;padding:6px 10px;border-radius:8px;font:12px system-ui;z-index:10000';
+  document.body.appendChild(dbg);
+}
+dbg.textContent = `winner.active=${JSON.stringify(s.winner?.active)} | name=${s.winner?.name||''}`;
+    }
+
+    // Confetti
+    let confettiTimer = null;
+    function startConfetti(){
+      stopConfetti();
+      const canvas = document.getElementById('confetti');
+      const ctx = canvas.getContext('2d');
+      function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+      resize(); window.addEventListener('resize', resize);
+      const colors = ['#ED1C24','#FFFFFF','#F46A6E','#FFD6D7'];
+      const pieces = Array.from({length:180}).map(()=>({
+        x: Math.random()*canvas.width,
+        y: Math.random()*(-canvas.height),
+        r: 5 + Math.random()*7,
+        c: colors[Math.floor(Math.random()*colors.length)],
+        s: 2 + Math.random()*4,
+        a: Math.random()*Math.PI*2
+      }));
+      function step(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(const p of pieces){
+          p.y += p.s; p.x += Math.sin(p.a)/1.6; p.a += 0.02;
+          if(p.y - p.r > canvas.height){ p.y = -p.r; p.x = Math.random()*canvas.width; }
+          ctx.fillStyle = p.c;
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+          ctx.fill();
+        }
+      }
+      confettiTimer = setInterval(step, 16);
+    }
+    function stopConfetti(){ if(confettiTimer){ clearInterval(confettiTimer); confettiTimer=null; } }
+
+    // Fit-to-screen sizing for board
+    function computeCellSize(){
+      // 5 columns, 16 rows (1 header + 15 numbers)
+      const styles = getComputedStyle(document.documentElement);
+      const gap = parseFloat(styles.getPropertyValue('--gap')) || 8;
+
+      const panel = leftPanel;
+      const panelStyles = getComputedStyle(panel);
+      const padV = parseFloat(panelStyles.paddingTop) + parseFloat(panelStyles.paddingBottom);
+      const padH = parseFloat(panelStyles.paddingLeft) + parseFloat(panelStyles.paddingRight);
+
+      const availW = panel.clientWidth - padH;
+      const availH = panel.clientHeight - padV;
+
+      const sizeByWidth  = (availW - gap * (5 - 1)) / 5;
+      const sizeByHeight = (availH - gap * (16 - 1)) / 16;
+
+      const cell = Math.floor(Math.max(22, Math.min(sizeByWidth, sizeByHeight)));
+      document.documentElement.style.setProperty('--cell-size', cell + 'px');
+      boardEl.style.gridTemplateColumns = `repeat(5, ${cell}px)`;
+      boardEl.style.gridAutoRows = `${cell}px`;
+    }
+
+    // Init
+    buildBoard();
+    computeCellSize();
+    updateBoard();
+
+    window.addEventListener('resize', computeCellSize);
+
+    // React to changes from Admin
+    window.addEventListener('storage', (e)=>{ if(e.key === STORAGE_KEY){ updateBoard(); } });
+
+    // Fallback poll
+    let lastVersion = getState().version || 0;
+    setInterval(()=>{
+      const v = getState().version || 0;
+      if(v !== lastVersion){ lastVersion = v; updateBoard(); }
+    }, 750);
+
+    // Extra safety: periodic repaint to avoid missed events
+    setInterval(() => {
+      try { updateBoard(); } catch(e) {}
+    }, 1000);
+  </script>
+</body>
+</html>
