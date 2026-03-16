@@ -217,15 +217,17 @@
    * 3) Keep the same config in display.html as well.
    * ===========================================================
    */
-  const FIREBASE_CONFIG = {
-    apiKey: "PASTE_YOUR_API_KEY",
-    authDomain: "PASTE_YOUR_AUTH_DOMAIN",
-    databaseURL: "PASTE_YOUR_DATABASE_URL",
-    projectId: "PASTE_YOUR_PROJECT_ID",
-    storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
-    messagingSenderId: "PASTE_YOUR_SENDER_ID",
-    appId: "PASTE_YOUR_APP_ID"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDLt8Aoa4T49S6PsQ2ppMrLUAxJTmJb33Q",
+  authDomain: "bsafe-bingo.firebaseapp.com",
+  projectId: "bsafe-bingo",
+  storageBucket: "bsafe-bingo.firebasestorage.app",
+  messagingSenderId: "1002781245238",
+  appId: "1:1002781245238:web:b6b32f19d7aea8495dfd97"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
   // Initialize Firebase
   let fbOk = false;
