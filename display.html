@@ -1,16 +1,350 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>BSAFE Bingo Display (Visix Ready)</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<!-- NOTE: This file is the Visix-ready Display with Firebase sync.
-Replace FIREBASE_CONFIG values before use. -->
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <meta charset="utf-8" />
+  <title>BSAFE Bingo Display (Visix Ready)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejsase-app-compat.js
+  https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js
+
+  <style>
+    :root{
+      --ace-red:#ED1C24;
+      --black:#000;
+      --white:#fff;
+      --border:#2a2a2a;
+
+      --cell-size:48px;
+      --gap:8px;
+      --panel-pad:12px;
+
+      --text:#fff;
+      --muted:#c8cbd0;
+      --called-bg:#ED1C24;
+      --called-fg:#fff;
+      --uncalled-fg:#D6D7D9;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      padding:0;
+      background:var(--black);
+      color:var(--text);
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      overflow:hidden;
+    }
+
+    /* Visix-safe root */
+    #root{width:100%;height:100%;padding:8px}
+
+    .layout{
+      width:100%;
+      height:100%;
+      display:grid;
+      grid-template-columns:.6fr 1.35fr;
+      gap:var(--gap);
+    }
+
+    .panel{
+      background:#171717;
+      border:1px solid var(--border);
+      border-radius:14px;
+      padding:var(--panel-pad);
+      min-width:0;
+      min-height:0;
+    }
+
+    /* Board */
+    #boardWrap{display:flex;height:100%}
+    #board{
+      margin:auto;
+      display:grid;
+      grid-template-columns:repeat(5,var(--cell-size));
+      grid-auto-rows:var(--cell-size);
+      gap:var(--gap);
+    }
+
+    .col-head,.cell{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width:var(--cell-size);
+      height:var(--cell-size);
+      border-radius:10px;
+      border:1px solid var(--border);
+      font-weight:800;
+    }
+
+    .col-head{
+      background:#222;
+      font-size:clamp(14px,calc(var(--cell-size)*.44),26px);
+    }
+
+    .cell{
+      background:#101010;
+      color:var(--uncalled-fg);
+      font-size:clamp(12px,calc(var(--cell-size)*.4),24px);
+    }
+
+    .cell.called{
+      background:var(--called-bg);
+      color:var(--called-fg);
+      border-color:#b51419;
+      transform:scale(.985);
+    }
+
+    /* Right side */
+    .right-side{
+      display:grid;
+      grid-template-rows:min-content 1fr;
+      gap:var(--gap);
+      height:100%;
+    }
+
+    .last-draw{
+      display:grid;
+      grid-template-columns:minmax(120px,160px) 1fr;
+      gap:16px;
+      align-items:center;
+    }
+
+    .ball{
+      width:140px;height:140px;
+      border-radius:50%;
+      background:radial-gradient(circle at 30% 30%,#fff,#eee);
+      border:6px solid var(--ace-red);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#111;
+      font-size:36px;
+      font-weight:900;
+      position:relative;
+    }
+
+    .ball .letter{
+      position:absolute;
+      top:6px;left:6px;
+      background:var(--ace-red);
+      color:#fff;
+      padding:2px 8px;
+      border-radius:999px;
+      font-size:14px;
+    }
+
+    .label{color:#a8adb4;font-size:.9rem;text-transform:uppercase}
+    .value{font-size:1.3rem;font-weight:900}
+
+    .progress{
+      height:14px;
+      background:#0f0f0f;
+      border:1px solid var(--border);
+      border-radius:999px;
+      overflow:hidden;
+    }
+    .progress .fill{
+      height:100%;
+      width:0%;
+      background:linear-gradient(90deg,#ED1C24,#ff4d54);
+    }
+
+    .history{display:flex;gap:6px;flex-wrap:wrap}
+    .chip{
+      background:#0f0f0f;
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:.85rem;
+    }
+
+    .prize{
+      display:grid;
+      grid-template-rows:min-content 1fr;
+      gap:10px;
+    }
+    .prize-media img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      border-radius:12px;
+      border:1px solid var(--border);
+    }
+
+    /* Winner overlay */
+    .winner-overlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.92);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:99;
+    }
+    body.winner-visible #winnerOverlay{display:flex!important}
+
+    .winner-card{
+      border:2px solid var(--ace-red);
+      border-radius:18px;
+      padding:28px;
+      background:#111;
+      text-align:center;
+    }
+    .winner-name{font-size:clamp(32px,6vw,64px);font-weight:900}
+    .winner-msg{font-size:clamp(16px,3vw,28px);color:#ddd}
+
+    canvas.confetti{position:fixed;inset:0;pointer-events:none}
+  </style>
 </head>
+
 <body>
-<h1 style="color:white;background:black;padding:20px">Visix Bingo Display Placeholder</h1>
-<p style="color:white">This is a packaged build. Replace this file's contents with the full display.html I provided, then deploy.</p>
+<div id="root">
+  <div class="layout">
+    <div class="panel" id="leftPanel">
+      <div id="boardWrap"><div id="board"></div></div>
+    </div>
+
+    <div class="right-side">
+      <div class="panel last-draw">
+        <div class="ball">
+          <span class="letter" id="ballLetter">–</span>
+          <span id="ballNumber">–</span>
+        </div>
+        <div>
+          <div class="label">Last Number</div>
+          <div class="value" id="lastText">Waiting…</div>
+
+          <div class="label">Progress</div>
+          <div class="progress"><div class="fill" id="progressFill"></div></div>
+          <div class="history" id="historyRow"></div>
+        </div>
+      </div>
+
+      <div class="panel prize">
+        <div>
+          <div class="value" id="prizeTitle">Grand Prize</div>
+          <div class="label" id="prizeDesc">Top prize</div>
+        </div>
+        <div class="prize-media">
+          <img id="prizeImage">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="winner-overlay" id="winnerOverlay">
+  <div class="winner-card">
+    <div class="label" style="color:#ED1C24">We have a winner!</div>
+    <div class="winner-name" id="winnerName">Winner</div>
+    <div class="winner-msg" id="winnerMsg">Congratulations!</div>
+  </div>
+  <canvas class="confetti" id="confetti"></canvas>
+</div>
+
+<script>
+/* ================= FIREBASE ================= */
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_AUTH_DOMAIN",
+  databaseURL: "PASTE_YOUR_DATABASE_URL",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+const STORAGE_KEY = "bingoState_v1";
+
+db.ref(STORAGE_KEY).on("value", snap=>{
+  if(!snap.val()) return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snap.val()));
+  updateBoard();
+});
+
+/* ================= DISPLAY LOGIC ================= */
+let confettiTimer=null, lastWinner=false;
+
+function getState(){
+  return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}");
+}
+
+function updateBoard(){
+  const s=getState();
+
+  // board
+  document.querySelectorAll(".cell").forEach(c=>{
+    c.classList.toggle("called", s.drawnNumbers?.includes(+c.dataset.number));
+  });
+
+  // last
+  if(s.lastNumber){
+    document.getElementById("ballNumber").textContent=s.lastNumber;
+    document.getElementById("ballLetter").textContent=s.letters[Math.floor((s.lastNumber-1)/15)];
+    document.getElementById("lastText").textContent=`${document.getElementById("ballLetter").textContent} ${s.lastNumber}`;
+  }
+
+  // progress
+  const pct=Math.round((s.drawnNumbers?.length||0)/75*100);
+  document.getElementById("progressFill").style.width=pct+"%";
+
+  // history
+  const h=document.getElementById("historyRow"); h.innerHTML="";
+  (s.drawnNumbers||[]).slice(-10).reverse().forEach(n=>{
+    const d=document.createElement("div");
+    d.className="chip";
+    d.textContent=`${s.letters[Math.floor((n-1)/15)]} ${n}`;
+    h.appendChild(d);
+  });
+
+  // prize
+  if(s.prize){
+    document.getElementById("prizeTitle").textContent=s.prize.title||"";
+    document.getElementById("prizeDesc").textContent=s.prize.description||"";
+    if(s.prize.image) document.getElementById("prizeImage").src=s.prize.image;
+  }
+
+  // winner
+  const active=!!s.winner?.active;
+  document.body.classList.toggle("winner-visible", active);
+  if(active!==lastWinner){
+    active?startConfetti():stopConfetti();
+    lastWinner=active;
+  }
+}
+
+function startConfetti(){
+  if(confettiTimer) return;
+  const c=document.getElementById("confetti"),ctx=c.getContext("2d");
+  c.width=innerWidth;c.height=innerHeight;
+  const parts=[...Array(150)].map(()=>({x:Math.random()*c.width,y:-20,r:5+Math.random()*6,s:2+Math.random()*3}));
+  confettiTimer=setInterval(()=>{
+    ctx.clearRect(0,0,c.width,c.height);
+    parts.forEach(p=>{
+      p.y+=p.s;
+      if(p.y>c.height) p.y=-20;
+      ctx.fillStyle="#ED1C24";
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+    });
+  },16);
+}
+function stopConfetti(){clearInterval(confettiTimer);confettiTimer=null;}
+
+function buildBoard(){
+  const b=document.getElementById("board");
+  ["B","S","A","F","E"].forEach(l=>{
+    const d=document.createElement("div");d.className="col-head";d.textContent=l;b.appendChild(d);
+  });
+  for(let i=1;i<=75;i++){
+    const d=document.createElement("div");d.className="cell";d.dataset.number=i;d.textContent=i;b.appendChild(d);
+  }
+}
+buildBoard();updateBoard();
+</script>
 </body>
 </html>
