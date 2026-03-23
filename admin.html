@@ -2,13 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>BSAFE Bingo Admin (Visix / Firebase Ready)</title>
+  <title>Bingo Admin (ACE Theme, Single Prize + Progress)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- Firebase (Compat CDN) -->
-  <script src="https://www.gstatic.com/firebasejs/9e-app-compat.js</script>
-  https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js</script>
-
   <style>
     :root{
       --ace-red: #ED1C24;
@@ -87,15 +82,6 @@
     .progress-label{
       font-size:.9rem; color:var(--muted);
     }
-
-    /* Tiny connection badge (bottom-right) */
-    #connBadge{
-      position:fixed; right:8px; bottom:8px; z-index:9999;
-      background:#0f0f0f; border:1px solid #2a2a2a; color:#b6bac0;
-      padding:6px 10px; border-radius:8px; font:12px system-ui;
-    }
-    #connBadge.ok{ color:#7be18a; border-color:#1f6f2a }
-    #connBadge.err{ color:#ff9aa0; border-color:#7a2730 }
   </style>
 </head>
 <body>
@@ -197,7 +183,7 @@
     <div class="card">
       <div class="section-title">How to use</div>
       <ol class="help">
-        <li>Open <b>admin.html</b> and <b>display.html</b> under the same site (or Visix + your hosted display).</li>
+        <li>Open <b>admin.html</b> and <b>display.html</b> under the same GitHub Pages site (same origin).</li>
         <li>Use <b>Draw random</b> or <b>Manual number</b>. Display updates instantly.</li>
         <li>Set the <b>single prize</b> (title, description, and image).</li>
         <li>When someone wins, enter their name/message and click <b>Show winner</b>.</li>
@@ -205,84 +191,23 @@
     </div>
   </div>
 
-  <!-- Connection badge -->
-  <div id="connBadge">Firebase: connecting…</div>
-
 <script>
-  /* ===========================================================
-   *                 🔥  F I R E B A S E   S E T U P  🔥
-   * -----------------------------------------------------------
-   * 1) Go to Firebase Console → Project settings → Your apps
-   * 2) Copy your web app config and paste it below.
-   * 3) Keep the same config in display.html as well.
-   * ===========================================================
-   */
-const firebaseConfig = {
-  apiKey: "AIzaSyDLt8Aoa4T49S6PsQ2ppMrLUAxJTmJb33Q",
-  authDomain: "bsafe-bingo.firebaseapp.com",
-  projectId: "bsafe-bingo",
-  storageBucket: "bsafe-bingo.firebasestorage.app",
-  messagingSenderId: "1002781245238",
-  appId: "1:1002781245238:web:b6b32f19d7aea8495dfd97"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-
-  // Initialize Firebase
-  let fbOk = false;
-  try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    fbOk = true;
-  } catch (e) {
-    // no-op; double init will throw; proceed
-    fbOk = !!firebase?.apps?.length;
-  }
-  const db = fbOk ? firebase.database() : null;
-
-  // Connection badge helper
-  const connBadge = document.getElementById('connBadge');
-  function setConnBadge(ok, msg){
-    if(!connBadge) return;
-    connBadge.classList.toggle('ok', !!ok);
-    connBadge.classList.toggle('err', !ok);
-    connBadge.textContent = ok ? (msg || 'Firebase: connected') : (msg || 'Firebase: not connected');
-  }
-  setConnBadge(!!db, db ? 'Firebase: connected' : 'Firebase: not connected (check config)');
-
-  // Push full state to Firebase
-  async function pushStateToCloud(state) {
-    if (!db) return;
-    try {
-      await db.ref('bingoState_v1').set(state);
-      setConnBadge(true, 'Firebase: synced ✔');
-      setTimeout(()=>setConnBadge(true, 'Firebase: connected'), 1200);
-    } catch (e) {
-      console.error('pushStateToCloud failed:', e);
-      setConnBadge(false, 'Firebase: write error');
-    }
-  }
-
-  /* ===========================================================
-   *                  A D M I N   L O G I C
-   * ===========================================================
-   */
   (function(){
-    // ---- Debug helper (status line) ----
+    // ---- Debug helper to show script status on the page ----
     function ensureDebugLine(){
       let el = document.getElementById('debugStatus');
       if(!el){
         el = document.createElement('div');
         el.id = 'debugStatus';
-        el.style.cssText = 'position:fixed;bottom:40px;right:8px;background:#111;border:1px solid #333;color:#9aa0a6;padding:6px 10px;border-radius:8px;font:12px system-ui;z-index:9999';
+        el.style.cssText = 'position:fixed;bottom:8px;right:8px;background:#111;border:1px solid #333;color:#9aa0a6;padding:6px 10px;border-radius:8px;font:12px system-ui;z-index:9999';
         document.body.appendChild(el);
       }
       return el;
     }
     function setDebug(msg){ ensureDebugLine().textContent = msg; }
 
+    // ---- Storage + state ----
     const STORAGE_KEY = 'bingoState_v1';
-
     function defaultState() {
       return {
         letters: ['B','S','A','F','E'],
@@ -298,6 +223,7 @@ const app = initializeApp(firebaseConfig);
         const raw = localStorage.getItem(STORAGE_KEY);
         if(!raw) return defaultState();
         const s = JSON.parse(raw);
+        // basic shape guard
         if (!Array.isArray(s.drawnNumbers)) s.drawnNumbers = [];
         if (!s.prize) s.prize = { title:'Grand Prize', description:'Top prize for the month-long game.', image:'' };
         if (!s.letters || s.letters.length !== 5) s.letters = ['B','S','A','F','E'];
@@ -307,18 +233,14 @@ const app = initializeApp(firebaseConfig);
         return defaultState();
       }
     }
-
-    // ✅ Important: this writes to localStorage AND Firebase
     function setState(updater){
       const prev = getState();
       const next = typeof updater === 'function' ? updater(prev) : updater;
       next.version = (prev.version||0) + 1;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      pushStateToCloud(next);           // 🔥 cross-device sync for Visix
       renderSafe();
       return next;
     }
-
     function letterForNumber(n, letters){
       const idx = Math.floor((n-1)/15);
       return letters[idx] ?? '?';
@@ -491,7 +413,7 @@ const app = initializeApp(firebaseConfig);
           setState(s=>({...s, prize:{...s.prize, image:''}}));
         });
 
-        // ✅ Winner controls
+        // ✅ Winner controls (added)
         on($('showWinner'), 'click', () => {
           const name = (winnerName?.value || '').trim();
           const msg  = (winnerMsg?.value  || '').trim();
@@ -509,7 +431,7 @@ const app = initializeApp(firebaseConfig);
           }));
         });
 
-        // Migration from older multi-prize state (one-time)
+        // Migration (from old multi-prize state) – run once if needed
         (function migrateIfNeeded(){
           const s = getState();
           if(s.prizeImages){
@@ -523,11 +445,10 @@ const app = initializeApp(firebaseConfig);
             };
             delete migrated.prizeImages;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-            pushStateToCloud(migrated);
           }
         })();
 
-        // Add a small "Clear local state" helper button (dev aid)
+        // Add a small "Clear local state" helper button (for testing)
         const clearBtn = document.createElement('button');
         clearBtn.textContent = '🧹 Clear local state';
         clearBtn.className = 'secondary';
@@ -535,15 +456,16 @@ const app = initializeApp(firebaseConfig);
         on(clearBtn, 'click', ()=>{
           localStorage.removeItem(STORAGE_KEY);
           renderSafe();
-          alert('Local state cleared. Refresh display if open.');
+          alert('Local state cleared. Refresh display.html if open.');
         });
+        // Append next to the reset controls row if present
         const resetRow = document.querySelector('.card .row[style*="align-items:flex-end"]');
         if(resetRow) resetRow.appendChild(clearBtn);
 
         // Initial render
         renderSafe();
 
-        // Listen for cross-tab updates (handy if you open Admin twice)
+        // Listen for cross-tab updates
         window.addEventListener('storage', (e)=>{ if(e.key === STORAGE_KEY) renderSafe() });
       } catch (err){
         console.error('Init error:', err);
