@@ -1,9 +1,19 @@
 {
-  "letters": ["B","S","A","F","E"],
-  "drawnNumbers": [17],
+  "letters": [
+    "B",
+    "S",
+    "A",
+    "F",
+    "E"
+  ],
+  "drawnNumbers": [
+    17,
+    26,
+    75
+  ],
   "prize": {
-    "title": "Grand Prize",
-    "description": "Prize description",
-    "image": "https://dariozuluaga.com/this is only a test.jpg"
+    "title": "a new car",
+    "description": "test prize",
+    "image": "https://dariozuluaga.com/this%20is%20only%20a%20test.jpg"
   }
 }
