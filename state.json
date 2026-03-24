@@ -1,10 +1,10 @@
 
 {
   "letters": ["B", "S", "A", "F", "E"],
-  "drawnNumbers": [],
+  "drawnNumbers": [5, 17, 33, 60],
   "prize": {
-    "title": "Grand Prize",
-    "description": "Top prize for the month-long game.",
-    "image": ""
+    "title": "TV Giveaway",
+    "description": "55-inch Smart TV",
+    "image": "https://your-site.com/tv.jpg"
   }
 }
