@@ -217,8 +217,20 @@
       .layout{grid-template-columns: 1fr}
     @media (max-aspect-ratio: 1/1) {
       .layout {grid-template-columns: 1fr;
+     }
   }
+      /* ===== Visix Region Constraint ===== */
+    @media (max-height: 600px) {
+      html, body {
+      height: 100%;
+    }
+
+    .layout {
+      height: 100%;
+      max-height: 586px;
+    }
 }
+
 ``
     }
   </style>
@@ -501,9 +513,15 @@ dbg.textContent = `winner.active=${JSON.stringify(s.winner?.active)} | name=${s.
       const sizeByHeight = (usableH - gap * (rows - 1)) / rows;
     
       // Clamp aggressively for signage
-      const cell = Math.floor(
-        Math.max(24, Math.min(sizeByWidth, sizeByHeight))
+     
+      const maxByVisixHeight = Math.floor(
+        (586 - 32 - gap * 15) / 16
       );
+      
+      const cell = Math.floor(
+        Math.max(22, Math.min(sizeByWidth, sizeByHeight, maxByVisixHeight))
+      );
+
     
       root.style.setProperty('--cell-size', `${cell}px`);
       boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
