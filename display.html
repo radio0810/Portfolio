@@ -59,9 +59,7 @@
 
     /* --- Left Board --- */
     #boardWrap{ display:flex; height:100%; }
-    #board{
-      aspect-ratio: 5 / 16;
-    }
+
 
     .col-head{
       width: var(--cell-size);
@@ -502,11 +500,19 @@ dbg.textContent = `winner.active=${JSON.stringify(s.winner?.active)} | name=${s.
       root.style.setProperty('--cell-size', `${cell}px`);
       boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
       boardEl.style.gridAutoRows = `${cell}px`;
+
+      boardEl.style.display = 'grid';
+      boardEl.style.gridTemplateColumns = `repeat(5, ${cell}px)`;
+      boardEl.style.gridAutoRows = `${cell}px`;
     }
     // Init
     buildBoard();
-    computeCellSize();
-    updateBoard();
+    
+    // Delay sizing so Visix has time to finalize layout
+    setTimeout(() => {
+      computeCellSize();
+      updateBoard();
+    }, 300);
 
     window.addEventListener('resize', computeCellSize);
 
@@ -534,6 +540,11 @@ dbg.textContent = `winner.active=${JSON.stringify(s.winner?.active)} | name=${s.
     setInterval(() => {
       try { updateBoard(); } catch(e) {}
     }, 1000);
+
+    // Hard recovery pass for Visix
+setTimeout(() => {
+  computeCellSize();
+}, 1500);
   </script>
 </body>
 </html>
