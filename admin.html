@@ -22,21 +22,20 @@ section{
   margin-bottom:16px;
 }
 label{display:block;margin-top:10px}
-input{
-  width:100%;
+input,button{
   padding:8px;
-  margin-top:4px;
+  margin-top:6px;
+  font-size:14px;
 }
 button{
-  margin-top:12px;
-  padding:10px 14px;
   background:#ED1C24;
   border:none;
   color:#fff;
-  font-weight:700;
   border-radius:6px;
   cursor:pointer;
+  margin-right:6px;
 }
+button.secondary{background:#444}
 .drawn span{
   display:inline-block;
   background:#222;
@@ -44,6 +43,12 @@ button{
   border-radius:999px;
   margin:4px;
   cursor:pointer;
+}
+img.preview{
+  max-width:100%;
+  margin-top:10px;
+  border-radius:8px;
+  border:1px solid #333;
 }
 </style>
 </head>
@@ -54,21 +59,31 @@ button{
 
 <section>
   <h2>Draw Numbers</h2>
-  <label>Number (1–75)</label>
-  <input id="num" type="number" min="1" max="75">
+
+  <button onclick="drawRandom()">Draw Random</button>
+  <button class="secondary" onclick="undoLast()">Undo Last</button>
+  <button class="secondary" onclick="resetGame()">Reset Game</button>
+
+  <label>Manual Number (1–75)</label>
+  <input id="manualNum" type="number" min="1" max="75">
   <button onclick="addNumber()">Add Number</button>
+
   <div class="drawn" id="drawn"></div>
   <small>Click a number to remove it</small>
 </section>
 
 <section>
   <h2>Prize</h2>
+
   <label>Title</label>
   <input id="title" placeholder="Grand Prize">
+
   <label>Description</label>
   <input id="desc" placeholder="Prize description">
-  <label>Image URL</label>
-  <input id="img" placeholder="https://example.com/prize.jpg">
+
+  <label>Upload Image</label>
+  <input type="file" accept="image/*" onchange="loadImage(event)">
+  <img id="preview" class="preview" style="display:none">
 </section>
 
 <section>
@@ -82,39 +97,77 @@ const state = {
   prize:{ title:'Grand Prize', description:'', image:'' }
 };
 
+const drawnEl=document.getElementById('drawn');
+
+function render(){
+  drawnEl.innerHTML='';
+  state.drawnNumbers.forEach(n=>{
+    const s=document.createElement('span');
+    s.textContent=n;
+    s.onclick=()=>removeNumber(n);
+    drawnEl.appendChild(s);
+  });
+}
+
 function addNumber(){
-  const n = Number(document.getElementById('num').value);
+  const n=Number(document.getElementById('manualNum').value);
   if(n<1||n>75||state.drawnNumbers.includes(n)) return;
   state.drawnNumbers.push(n);
   render();
 }
 
 function removeNumber(n){
-  state.drawnNumbers = state.drawnNumbers.filter(x=>x!==n);
+  state.drawnNumbers=state.drawnNumbers.filter(x=>x!==n);
   render();
 }
 
-function render(){
-  const d = document.getElementById('drawn');
-  d.innerHTML='';
-  state.drawnNumbers.forEach(n=>{
-    const s=document.createElement('span');
-    s.textContent=n;
-    s.onclick=()=>removeNumber(n);
-    d.appendChild(s);
-  });
+function drawRandom(){
+  const pool=[];
+  for(let i=1;i<=75;i++){
+    if(!state.drawnNumbers.includes(i)) pool.push(i);
+  }
+  if(!pool.length) return;
+  const n=pool[Math.floor(Math.random()*pool.length)];
+  state.drawnNumbers.push(n);
+  render();
 }
 
-function exportJSON(){
-  state.prize.title = document.getElementById('title').value || 'Grand Prize';
-  state.prize.description = document.getElementById('desc').value || '';
-  state.prize.image = document.getElementById('img').value || '';
+function undoLast(){
+  state.drawnNumbers.pop();
+  render();
+}
 
-  const blob = new Blob(
+function resetGame(){
+  if(confirm('Reset all drawn numbers?')){
+    state.drawnNumbers=[];
+    render();
+  }
+}
+
+/* ===== IMAGE UPLOAD (BASE64) ===== */
+function loadImage(e){
+  const file=e.target.files[0];
+  if(!file) return;
+
+  const reader=new FileReader();
+  reader.onload=()=>{
+    state.prize.image=reader.result;
+    const img=document.getElementById('preview');
+    img.src=reader.result;
+    img.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ===== EXPORT ===== */
+function exportJSON(){
+  state.prize.title=document.getElementById('title').value||'Grand Prize';
+  state.prize.description=document.getElementById('desc').value||'';
+
+  const blob=new Blob(
     [JSON.stringify(state,null,2)],
     {type:'application/json'}
   );
-
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='state.json';
@@ -124,3 +177,4 @@ function exportJSON(){
 
 </body>
 </html>
+``
