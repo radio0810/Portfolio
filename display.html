@@ -60,11 +60,7 @@
     /* --- Left Board --- */
     #boardWrap{ display:flex; height:100%; }
     #board{
-      display:grid;
-      grid-template-columns: repeat(5, var(--cell-size));
-      grid-auto-rows: var(--cell-size);
-      gap: var(--gap);
-      margin:auto;
+      aspect-ratio: 5 / 16;
     }
 
     .col-head{
@@ -213,6 +209,11 @@
 
     @media (max-width: 1100px){
       .layout{grid-template-columns: 1fr}
+    @media (max-aspect-ratio: 1/1) {
+      .layout {grid-template-columns: 1fr;
+  }
+}
+``
     }
   </style>
 </head>
@@ -469,33 +470,55 @@ dbg.textContent = `winner.active=${JSON.stringify(s.winner?.active)} | name=${s.
 
     // Fit-to-screen sizing for board
     function computeCellSize(){
-      // 5 columns, 16 rows (1 header + 15 numbers)
-      const styles = getComputedStyle(document.documentElement);
+      const root = document.documentElement;
+      const styles = getComputedStyle(root);
+    
       const gap = parseFloat(styles.getPropertyValue('--gap')) || 8;
-
-      const panel = leftPanel;
-      const panelStyles = getComputedStyle(panel);
-      const padV = parseFloat(panelStyles.paddingTop) + parseFloat(panelStyles.paddingBottom);
-      const padH = parseFloat(panelStyles.paddingLeft) + parseFloat(panelStyles.paddingRight);
-
-      const availW = panel.clientWidth - padH;
-      const availH = panel.clientHeight - padV;
-
-      const sizeByWidth  = (availW - gap * (5 - 1)) / 5;
-      const sizeByHeight = (availH - gap * (16 - 1)) / 16;
-
-      const cell = Math.floor(Math.max(22, Math.min(sizeByWidth, sizeByHeight)));
-      document.documentElement.style.setProperty('--cell-size', cell + 'px');
-      boardEl.style.gridTemplateColumns = `repeat(5, ${cell}px)`;
+      const outerPad = parseFloat(styles.getPropertyValue('--outer-pad')) || 10;
+      const panelPad = parseFloat(styles.getPropertyValue('--panel-pad')) || 12;
+    
+      // Total available viewport space
+      const vw = window.innerWidth  - outerPad * 2;
+      const vh = window.innerHeight - outerPad * 2;
+    
+      // Left column width (matches your grid-template-columns)
+      const leftColumnWidth = vw * (0.6 / (0.6 + 1.35));
+    
+      // Board grid math
+      const cols = 5;
+      const rows = 16;
+    
+      const usableW = leftColumnWidth - panelPad * 2;
+      const usableH = vh - panelPad * 2;
+    
+      const sizeByWidth  = (usableW - gap * (cols - 1)) / cols;
+      const sizeByHeight = (usableH - gap * (rows - 1)) / rows;
+    
+      // Clamp aggressively for signage
+      const cell = Math.floor(
+        Math.max(24, Math.min(sizeByWidth, sizeByHeight))
+      );
+    
+      root.style.setProperty('--cell-size', `${cell}px`);
+      boardEl.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
       boardEl.style.gridAutoRows = `${cell}px`;
     }
-
     // Init
     buildBoard();
     computeCellSize();
     updateBoard();
 
     window.addEventListener('resize', computeCellSize);
+
+    let lastSize = `${window.innerWidth}x${window.innerHeight}`;
+
+    setInterval(() => {
+      const now = `${window.innerWidth}x${window.innerHeight}`;
+      if (now !== lastSize) {
+        lastSize = now;
+        computeCellSize();
+      }
+    }, 500);
 
     // React to changes from Admin
     window.addEventListener('storage', (e)=>{ if(e.key === STORAGE_KEY){ updateBoard(); } });
