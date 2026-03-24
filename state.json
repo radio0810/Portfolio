@@ -1,0 +1,10 @@
+
+{
+  "letters": ["B", "S", "A", "F", "E"],
+  "drawnNumbers": [],
+  "prize": {
+    "title": "Grand Prize",
+    "description": "Top prize for the month-long game.",
+    "image": ""
+  }
+}
