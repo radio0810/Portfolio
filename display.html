@@ -553,6 +553,35 @@ dbg.textContent = `winner.active=${JSON.stringify(s.winner?.active)} | name=${s.
 setTimeout(() => {
   computeCellSize();
 }, 1500);
+    // === VISIX REGION DEBUG (TEMPORARY) ===
+  (function () {
+    const dbg = document.createElement('div');
+    dbg.style.cssText = `
+      position:fixed;
+      top:8px;
+      left:8px;
+      z-index:99999;
+      background:#000;
+      color:#0f0;
+      font:12px monospace;
+      padding:6px 10px;
+      border:1px solid #0f0;
+      border-radius:6px;
+      pointer-events:none;
+    `;
+    document.body.appendChild(dbg);
+  
+    function update() {
+      const rect = document.body.getBoundingClientRect();
+      dbg.textContent =
+        `window: ${window.innerWidth}×${window.innerHeight}\n` +
+        `body:   ${Math.round(rect.width)}×${Math.round(rect.height)}`;
+    }
+  
+    update();
+    setInterval(update, 500);
+  })();
+  
   </script>
 </body>
 </html>
