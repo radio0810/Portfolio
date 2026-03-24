@@ -1,10 +1,9 @@
-
 {
-  "letters": ["B", "S", "A", "F", "E"],
-  "drawnNumbers": [5, 17, 33, 60],
+  "letters": ["B","S","A","F","E"],
+  "drawnNumbers": [17],
   "prize": {
-    "title": "TV Giveaway",
-    "description": "55-inch Smart TV",
-    "image": "https://your-site.com/tv.jpg"
+    "title": "Grand Prize",
+    "description": "Prize description",
+    "image": "https://dariozuluaga.com/prize.jpg"
   }
 }
