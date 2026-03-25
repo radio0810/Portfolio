@@ -113,6 +113,23 @@ body{
 
 <body>
 
+  <div id="gameOverOverlay"
+     style="display:none;
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,0.9);
+            color:#fff;
+            z-index:10000;
+            align-items:center;
+            justify-content:center;
+            text-align:center;
+            font-family:system-ui">
+  <div>
+    <h1 style="color:#ED1C24;font-size:48px;">GAME OVER</h1>
+    <p style="font-size:22px;">Thank you for playing!</p>
+  </div>
+</div>
+  
 <div id="fatalError"></div>
 
 <div class="layout">
@@ -202,6 +219,15 @@ function applyState(state){
   }else{
     img.style.display='none';
   }
+  
+const overlay = document.getElementById('gameOverOverlay');
+
+if (state.gameOver) {
+  overlay.style.display = 'flex';
+} else {
+  overlay.style.display = 'none';
+}
+
 }
 
 /* ===== FETCH STATE (BULLETPROOF) ===== */
