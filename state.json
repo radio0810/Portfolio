@@ -1,4 +1,5 @@
 {
+  
   "letters": [
     "B",
     "S",
@@ -24,6 +25,7 @@
     13,
     11
   ],
+  "gameOver" : false,
   "prize": {
     "title": "Grand Prize",
     "description": "",
