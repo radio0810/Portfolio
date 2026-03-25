@@ -180,7 +180,43 @@ const GITHUB_PATH  = 'state.json';
 const GITHUB_BRANCH = 'main';
 
 const drawnEl=document.getElementById('drawn');
+async function loadExistingState() {
+  try {
+    const res = await fetch('/state.json?t=' + Date.now(), {
+      cache: 'no-store'
+    });
 
+    if (!res.ok) return; // No file yet – first run is fine
+
+    const data = await res.json();
+
+    // Merge existing data into admin state
+    if (Array.isArray(data.drawnNumbers)) {
+      state.drawnNumbers = [...data.drawnNumbers];
+    }
+
+    if (data.prize) {
+      state.prize.title = data.prize.title || state.prize.title;
+      state.prize.description = data.prize.description || '';
+      state.prize.image = data.prize.image || '';
+    }
+
+    // Populate UI
+    document.getElementById('title').value = state.prize.title;
+    document.getElementById('desc').value = state.prize.description;
+
+    if (state.prize.image) {
+      const img = document.getElementById('preview');
+      img.src = state.prize.image;
+      img.style.display = 'block';
+    }
+
+    render(); // show existing drawn numbers
+  } catch (err) {
+    console.warn('Could not load existing state.json', err);
+  }
+}
+  
 /* ===== NUMBER LOGIC ===== */
 function render(){
   drawnEl.innerHTML='';
@@ -306,7 +342,7 @@ async function publishToGitHub(){
     console.error(err);
   }
 }
-
+loadExistingState();
 </script>
 
 </body>
