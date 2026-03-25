@@ -6,49 +6,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
+:root{
+  --red:#ED1C24;
+  --bg:#0f0f0f;
+  --panel:#171717;
+  --border:#2a2a2a;
+  --muted:#9aa0a6;
+}
+
 body{
   margin:0;
-  padding:20px;
+  padding:24px;
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
-  background:#0f0f0f;
+  background:var(--bg);
   color:#fff;
 }
-h1{margin-top:0}
+
+h1{margin:0 0 12px}
+h2{margin-top:0}
+
+p{color:var(--muted);line-height:1.4}
+
 section{
-  background:#171717;
-  border:1px solid #2a2a2a;
-  border-radius:12px;
-  padding:16px;
-  margin-bottom:16px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:18px;
+  margin-bottom:18px;
 }
-label{display:block;margin-top:10px}
-input,button{
-  padding:8px;
+
+label{
+  display:block;
+  margin-top:12px;
+  font-weight:600;
+}
+
+input{
+  width:100%;
+  padding:10px;
   margin-top:6px;
-  font-size:14px;
-}
-button{
-  background:#ED1C24;
-  border:none;
+  background:#0c0c0c;
   color:#fff;
+  border:1px solid var(--border);
   border-radius:6px;
-  cursor:pointer;
-  margin-right:6px;
 }
-button.secondary{background:#444}
+
+button{
+  padding:10px 16px;
+  margin-top:12px;
+  font-size:14px;
+  border-radius:8px;
+  border:none;
+  cursor:pointer;
+  font-weight:700;
+}
+
+button.primary{background:var(--red);color:#fff}
+button.secondary{background:#333;color:#fff}
+
+.actions button{margin-right:8px}
+
+.drawn{
+  margin-top:12px;
+}
+
 .drawn span{
   display:inline-block;
   background:#222;
-  padding:6px 10px;
+  padding:6px 12px;
   border-radius:999px;
   margin:4px;
   cursor:pointer;
 }
+
+small{color:var(--muted)}
+
 img.preview{
   max-width:100%;
-  margin-top:10px;
-  border-radius:8px;
-  border:1px solid #333;
+  margin-top:12px;
+  border-radius:10px;
+  border:1px solid var(--border);
 }
 </style>
 </head>
@@ -56,38 +93,57 @@ img.preview{
 <body>
 
 <h1>BSAFE Bingo – Admin</h1>
+<p>Use this page to control the bingo game shown on the Visix display.</p>
+
+<section>
+  <h2>How this page works</h2>
+  <p>
+    1️⃣ Draw or remove bingo numbers using the controls below.<br>
+    2️⃣ Set the current prize (title, description, image).<br>
+    3️⃣ Click <strong>Export state.json</strong> and upload that file to the website.<br><br>
+    The display will update automatically within a few seconds.
+  </p>
+</section>
 
 <section>
   <h2>Draw Numbers</h2>
 
-  <button onclick="drawRandom()">Draw Random</button>
-  <button class="secondary" onclick="undoLast()">Undo Last</button>
-  <button class="secondary" onclick="resetGame()">Reset Game</button>
+  <div class="actions">
+    <button class="primary" onclick="drawRandom()">Draw Random Number</button>
+    <button class="secondary" onclick="undoLast()">Undo Last</button>
+    <button class="secondary" onclick="resetGame()">Reset Game</button>
+  </div>
 
-  <label>Manual Number (1–75)</label>
+  <label>Manually add a number (1–75)</label>
   <input id="manualNum" type="number" min="1" max="75">
-  <button onclick="addNumber()">Add Number</button>
+  <button class="secondary" onclick="addNumber()">Add Number</button>
 
   <div class="drawn" id="drawn"></div>
-  <small>Click a number to remove it</small>
+  <small>Click a number above to remove it.</small>
 </section>
 
 <section>
   <h2>Prize</h2>
 
-  <label>Title</label>
+  <label>Prize title</label>
   <input id="title" placeholder="Grand Prize">
 
-  <label>Description</label>
+  <label>Prize description</label>
   <input id="desc" placeholder="Prize description">
 
-  <label>Upload Image</label>
+  <label>Upload prize image</label>
   <input type="file" accept="image/*" onchange="loadImage(event)">
+  <small>The image will be embedded directly into the display (recommended).</small>
+
   <img id="preview" class="preview" style="display:none">
 </section>
 
 <section>
-  <button onclick="exportJSON()">Export state.json</button>
+  <h2>Finish & Export</h2>
+  <p>
+    When you are done making changes, export the shared game state file.
+  </p>
+  <button class="primary" onclick="exportJSON()">Export state.json</button>
 </section>
 
 <script>
@@ -99,6 +155,7 @@ const state = {
 
 const drawnEl=document.getElementById('drawn');
 
+/* ===== NUMBER LOGIC ===== */
 function render(){
   drawnEl.innerHTML='';
   state.drawnNumbers.forEach(n=>{
@@ -127,8 +184,7 @@ function drawRandom(){
     if(!state.drawnNumbers.includes(i)) pool.push(i);
   }
   if(!pool.length) return;
-  const n=pool[Math.floor(Math.random()*pool.length)];
-  state.drawnNumbers.push(n);
+  state.drawnNumbers.push(pool[Math.floor(Math.random()*pool.length)]);
   render();
 }
 
@@ -144,11 +200,10 @@ function resetGame(){
   }
 }
 
-/* ===== IMAGE UPLOAD (BASE64) ===== */
+/* ===== IMAGE UPLOAD ===== */
 function loadImage(e){
   const file=e.target.files[0];
   if(!file) return;
-
   const reader=new FileReader();
   reader.onload=()=>{
     state.prize.image=reader.result;
@@ -168,6 +223,7 @@ function exportJSON(){
     [JSON.stringify(state,null,2)],
     {type:'application/json'}
   );
+
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download='state.json';
@@ -177,4 +233,3 @@ function exportJSON(){
 
 </body>
 </html>
-``
