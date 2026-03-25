@@ -154,6 +154,19 @@ img.preview{
 </section>
 
 <script>
+let GITHUB_TOKEN = '';
+
+function requireToken() {
+  if (!GITHUB_TOKEN) {
+    GITHUB_TOKEN = prompt(
+      'Enter GitHub publish token:',
+      ''
+    );
+  }
+  return GITHUB_TOKEN;
+}
+
+  
 const state = {
   letters:['B','S','A','F','E'],
   drawnNumbers:[],
@@ -165,9 +178,6 @@ const GITHUB_OWNER  = 'radio0810';
 const GITHUB_REPO   = 'Portfolio';
 const GITHUB_PATH  = 'state.json';
 const GITHUB_BRANCH = 'main';
-
-// ⚠️ Fine‑grained token with Contents: Read & Write
-const GITHUB_TOKEN = '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';
 
 const drawnEl=document.getElementById('drawn');
 
@@ -260,7 +270,7 @@ async function publishToGitHub(){
     let sha = null;
     const getRes = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Authorization: `Bearer ${requireToken()}`,
         Accept: 'application/vnd.github+json'
       }
     });
@@ -274,7 +284,7 @@ async function publishToGitHub(){
     const putRes = await fetch(url, {
       method: 'PUT',
       headers: {
-        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Authorization: `Bearer ${requireToken()}`,
         Accept: 'application/vnd.github+json'
       },
       body: JSON.stringify({
