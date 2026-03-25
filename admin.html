@@ -160,6 +160,15 @@ const state = {
   prize:{ title:'Grand Prize', description:'', image:'' }
 };
 
+// ===== GITHUB CONFIG =====
+const GITHUB_OWNER  = 'radio0810';
+const GITHUB_REPO   = 'Portfolio';
+const GITHUB_PATH  = 'state.json';
+const GITHUB_BRANCH = 'main';
+
+// ⚠️ Fine‑grained token with Contents: Read & Write
+const GITHUB_TOKEN = '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';
+
 const drawnEl=document.getElementById('drawn');
 
 /* ===== NUMBER LOGIC ===== */
@@ -236,6 +245,58 @@ function exportJSON(){
   a.download='state.json';
   a.click();
 }
+async function publishToGitHub(){
+  const status = document.getElementById('publishStatus');
+  status.textContent = 'Publishing…';
+
+  try {
+    const json = JSON.stringify(state, null, 2);
+    const encoded = btoa(unescape(encodeURIComponent(json)));
+
+    const url =
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_PATH}`;
+
+    // Step 1: Get existing file SHA (if it exists)
+    let sha = null;
+    const getRes = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github+json'
+      }
+    });
+
+    if (getRes.ok) {
+      const data = await getRes.json();
+      sha = data.sha;
+    }
+
+    // Step 2: Upload file
+    const putRes = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github+json'
+      },
+      body: JSON.stringify({
+        message: 'Update bingo state',
+        content: encoded,
+        sha: sha,
+        branch: GITHUB_BRANCH
+      })
+    });
+
+    if (!putRes.ok) {
+      throw new Error('Upload failed');
+    }
+
+    status.textContent = '✅ Published to display';
+
+  } catch (err) {
+    status.textContent = '❌ Publish failed';
+    console.error(err);
+  }
+}
+
 </script>
 
 </body>
