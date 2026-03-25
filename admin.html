@@ -137,7 +137,21 @@ img.preview{
 
   <img id="preview" class="preview" style="display:none">
 </section>
+<section>
+  <h2>Game Status</h2>
 
+  <button class="secondary" onclick="endGame()">
+    End Game
+  </button>
+
+  <button class="secondary" onclick="startNewGame()">
+    Start New Game
+  </button>
+
+  <p class="muted">
+    Ending the game will show a Game Over message on the display.
+  </p>
+</section>
 <section>
   <h2>Finish & Export</h2>
   <p>
@@ -210,6 +224,7 @@ async function loadExistingState() {
       img.src = state.prize.image;
       img.style.display = 'block';
     }
+    state.gameOver = !!data.gameOver;
 
     render(); // show existing drawn numbers
   } catch (err) {
@@ -343,6 +358,19 @@ async function publishToGitHub(){
   }
 }
 loadExistingState();
+// ---- GAME STATUS ----
+function endGame(){
+  if (confirm('End the current game?')) {
+    state.gameOver = true;
+  }
+}
+
+function startNewGame(){
+  if (confirm('Start a new game? This will clear all numbers.')) {
+    state.drawnNumbers = [];
+    state.gameOver = false;
+  }
+}
 </script>
 
 </body>
