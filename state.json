@@ -6,7 +6,12 @@
     "F",
     "E"
   ],
-  "drawnNumbers": [],
+  "drawnNumbers": [
+    66,
+    72,
+    10,
+    36
+  ],
   "prize": {
     "title": "Grand Prize",
     "description": "",
